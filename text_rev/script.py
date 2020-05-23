@@ -1,3 +1,8 @@
+import pymorphy2
+import numpy as np
+import re
+
+
 def get_text(file_path):
     morph = pymorphy2.MorphAnalyzer()
     try:
