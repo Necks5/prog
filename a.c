@@ -2,6 +2,8 @@
 #include <math.h>
 #include <time.h>
 #include <stdlib.h>
+#include "umfpack.h"
+
 
 #define n 4
 #define nnz (4*(n-1) + 5*(n-2)*(n-2))
@@ -34,29 +36,6 @@ double b[N], true_x[N], x[N];
 double a[N][N];
 
 int main() {
-    
-    for(int j = 0; j < n; j++) 
-        b[j] = func(0, j*h)
-        a[j,j] = 1
-        b[n*(n-1) + j] = func(1, j*h)
-        a[n*(n-1) + j,n*(n-1) + j] = 1
-        
-    for(int i = 2; i < n; i++) 
-        b[n*(i-1)] = func(h*(i-1), 0)
-        a[n*(i-1),n*(i-1)] = 1
-        b[n*(i-1) + n-1] = func(h*(i-1), 1)
-        a[n*(i-1) + n-1,n*(i-1) + n-1] = 1
-
-        
-    for(int i = 2; i < n; i++) 
-         for j in range(2, n):  #   for(int j = 1; j < n-1; j++) 
-            a[n*(i-1)+j-1,n*(i-1)+j-1] = -4.0 / (h*h)
-            a[n*(i-1)+j-1,n*i + j-1] = 1.0 / (h*h)
-            a[n*(i-1)+j-1,n*(i-2)+j-1] = 1.0/(h*h)
-            a[n*(i-1)+j-1,n*(i-1)+j + 1 - 1] = 1.0/(h*h)
-            a[n*(i-1)+j-1,n*(i-1)+j - 1 -1] = 1.0/(h*h)
-            
-            b[n*(i-1)+j-1] = f(h*i, h*j)
 
     Ap[N] = nnz;
     int temp = 0;
@@ -80,7 +59,7 @@ int main() {
     }
     printf("temp:  %d, nnz: %d\n", temp, nnz);
 
-    for(int i = 2; i < n; i++ ){
+    for(int i = 2; i < n; i++ ) {
         for(int j = 2; j < n; j++) {
             int ind = n*(i-1)+j-1;
             int start_poz = Ap[ind];
@@ -121,8 +100,19 @@ int main() {
         // } 
         // printf("\n");
 
-        printf("%lf \t %lf \n", b[i], true_x[i]);
+        // printf("%lf \t %lf \n", b[i], true_x[i]);
     }
+
+    double Inform[UMFPACK_INFO], Inform2[UMFPACK_INFO]; 
+    double *null = (double *) NULL ;
+    int i ;
+    void *Symbolic, *Numeric ;
+    (void) umfpack_di_symbolic (N, N, Ap, Ai, Ax, &Symbolic, null, null) ;
+    (void) umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, null, Inform) ;
+    printf("n: %d\nInit time: %lf\n", n, Inform[UMFPACK_NUMERIC_TIME]);
+    umfpack_di_free_symbolic (&Symbolic) ;
+    (void) umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, x, b, Numeric, null, Inform2) ;
+    umfpack_di_free_numeric (&Numeric) ;
 
 
 
