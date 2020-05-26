@@ -87,6 +87,19 @@ int main() {
 
 
 
+    
+
+    double Inform[UMFPACK_INFO], Inform2[UMFPACK_INFO]; 
+    double *null = (double *) NULL ;
+    int i ;
+    void *Symbolic, *Numeric ;
+    (void) umfpack_di_symbolic (N, N, Ap, Ai, Ax, &Symbolic, null, null) ;
+    (void) umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, null, Inform) ;
+    printf("n: %d\nInit time: %lf\n", n, Inform[UMFPACK_NUMERIC_TIME]);
+    umfpack_di_free_symbolic (&Symbolic) ;
+    (void) umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, x, b, Numeric, null, Inform2) ;
+    umfpack_di_free_numeric (&Numeric) ;
+
     for(int i = 0; i < N; i++) {
         // printf("%d \n", Ap[i]);
 
@@ -100,21 +113,8 @@ int main() {
         // } 
         // printf("\n");
 
-        // printf("%lf \t %lf \n", b[i], true_x[i]);
+        printf("%lf \t %lf \n", b[i], true_x[i]);
     }
-
-    double Inform[UMFPACK_INFO], Inform2[UMFPACK_INFO]; 
-    double *null = (double *) NULL ;
-    int i ;
-    void *Symbolic, *Numeric ;
-    (void) umfpack_di_symbolic (N, N, Ap, Ai, Ax, &Symbolic, null, null) ;
-    (void) umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, null, Inform) ;
-    printf("n: %d\nInit time: %lf\n", n, Inform[UMFPACK_NUMERIC_TIME]);
-    umfpack_di_free_symbolic (&Symbolic) ;
-    (void) umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, x, b, Numeric, null, Inform2) ;
-    umfpack_di_free_numeric (&Numeric) ;
-
-
 
     return 0;
 }
