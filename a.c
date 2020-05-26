@@ -2,18 +2,17 @@
 #include <math.h>
 #include <time.h>
 #include <stdlib.h>
-#include "umfpack.h"
 
 #define n 4
 #define nnz (4*(n-1) + 5*(n-2)*(n-2))
 #define N n*n
 
 double func(double x, double y) {  // function
-    return pow((x-y) * (x-y) + 10e-10, 0.75);
+    return pow((x-y) * (x-y) + 10e-5, 0.75);
 }
 
 double f(double x, double y) {   // laplas 
-    double temp = (x-y) * (x-y) + 10e-10;
+    double temp = (x-y) * (x-y) + 10e-5;
     double temp1 = 3 / pow(temp, 0.25);
     double temp2= 1.5 * (x-y) * (x-y) / pow(temp, 1.25);
     temp = temp1 - temp2;
@@ -32,8 +31,32 @@ int Ai[nnz];
 double Ax[nnz];
 double b[N], true_x[N], x[N];
 
+double a[N][N];
+
 int main() {
     
+    for(int j = 0; j < n; j++) 
+        b[j] = func(0, j*h)
+        a[j,j] = 1
+        b[n*(n-1) + j] = func(1, j*h)
+        a[n*(n-1) + j,n*(n-1) + j] = 1
+        
+    for(int i = 2; i < n; i++) 
+        b[n*(i-1)] = func(h*(i-1), 0)
+        a[n*(i-1),n*(i-1)] = 1
+        b[n*(i-1) + n-1] = func(h*(i-1), 1)
+        a[n*(i-1) + n-1,n*(i-1) + n-1] = 1
+
+        
+    for(int i = 2; i < n; i++) 
+         for j in range(2, n):  #   for(int j = 1; j < n-1; j++) 
+            a[n*(i-1)+j-1,n*(i-1)+j-1] = -4.0 / (h*h)
+            a[n*(i-1)+j-1,n*i + j-1] = 1.0 / (h*h)
+            a[n*(i-1)+j-1,n*(i-2)+j-1] = 1.0/(h*h)
+            a[n*(i-1)+j-1,n*(i-1)+j + 1 - 1] = 1.0/(h*h)
+            a[n*(i-1)+j-1,n*(i-1)+j - 1 -1] = 1.0/(h*h)
+            
+            b[n*(i-1)+j-1] = f(h*i, h*j)
 
     Ap[N] = nnz;
     int temp = 0;
@@ -55,6 +78,7 @@ int main() {
 
         }
     }
+    printf("temp:  %d, nnz: %d\n", temp, nnz);
 
     for(int i = 2; i < n; i++ ){
         for(int j = 2; j < n; j++) {
@@ -84,34 +108,23 @@ int main() {
 
 
 
-    // for(int i = 0; i < N; i++) {
-    //     // printf("%d \n", Ap[i]);
-
-    //     // for(int j = 0; j < Ap[i+1] - Ap[i]; j++) {
-    //     //     printf("%f ", Ax[Ap[i] + j]);
-    //     // } 
-    //     // printf("\n");
-
-    //     // for(int j = 0; j < Ap[i+1] - Ap[i]; j++) {
-    //     //     printf("%d ", Ai[Ap[i] + j]);
-    //     // } 
-    //     // printf("\n");
-
-    //     printf("%lf \n", b[i]);
-    // }
-
-    double Inform[UMFPACK_INFO], Inform2[UMFPACK_INFO];
-    double *null = (double *) NULL ;
-    void *Symbolic, *Numeric ;
-    (void) umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, null, null) ;
-    (void) umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, null, Inform) ;
-    printf("n: %d\nInit time: %lf\n", n, Inform[UMFPACK_NUMERIC_TIME]);
-    umfpack_di_free_symbolic (&Symbolic) ;
-    (void) umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, x, b, Numeric, null, Inform2) ;
-    umfpack_di_free_numeric (&Numeric) ;
-
     for(int i = 0; i < N; i++) {
-        printf("%lf %lf \n", x[i], true_x[i]);
+        // printf("%d \n", Ap[i]);
+
+        // for(int j = 0; j < Ap[i+1] - Ap[i]; j++) {
+        //     printf("%f ", Ax[Ap[i] + j]);
+        // } 
+        // printf("\n");
+
+        // for(int j = 0; j < Ap[i+1] - Ap[i]; j++) {
+        //     printf("%d ", Ai[Ap[i] + j]);
+        // } 
+        // printf("\n");
+
+        printf("%lf \t %lf \n", b[i], true_x[i]);
     }
+
+
+
     return 0;
 }
