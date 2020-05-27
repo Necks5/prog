@@ -5,15 +5,17 @@
 #include "umfpack.h"
 
 
-#define n 4
+#define n 10
 #define nnz (4*(n-1) + 5*(n-2)*(n-2))
 #define N n*n
 
 double func(double x, double y) {  // function
+   // return x*x + y*y;
     return pow((x-y) * (x-y) + 10e-5, 0.75);
 }
 
 double f(double x, double y) {   // laplas 
+   // return 4;
     double temp = (x-y) * (x-y) + 10e-5;
     double temp1 = 3 / pow(temp, 0.25);
     double temp2= 1.5 * (x-y) * (x-y) / pow(temp, 1.25);
@@ -97,7 +99,7 @@ int main() {
     (void) umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, null, Inform) ;
     printf("n: %d\nInit time: %lf\n", n, Inform[UMFPACK_NUMERIC_TIME]);
     umfpack_di_free_symbolic (&Symbolic) ;
-    (void) umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, x, b, Numeric, null, Inform2) ;
+    (void) umfpack_di_solve (UMFPACK_Aat, Ap, Ai, Ax, x, b, Numeric, null, Inform2) ;
     umfpack_di_free_numeric (&Numeric) ;
 
     for(int i = 0; i < N; i++) {
@@ -113,8 +115,14 @@ int main() {
         // } 
         // printf("\n");
 
-        printf("%lf \t %lf \n", b[i], true_x[i]);
+    //    printf("%lf \t %lf \t %lf \t %d\n", x[i], true_x[i], b[i], Ap[i]);
     }
+    double norm_max = 0;
+    for(int i =  0; i < N; i++) {
+        double ss = fabs(x[i] - true_x[i]);
+	if(ss > norm_max) norm_max = ss;
 
+    }
+    printf("error norm:  %lf \n", norm_max);
     return 0;
 }
