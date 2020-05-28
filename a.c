@@ -5,24 +5,25 @@
 #include "umfpack.h"
 
 
-#define n 10
+#define n 1000
 #define nnz (4*(n-1) + 5*(n-2)*(n-2))
 #define N n*n
 
 double func(double x, double y) {  // function
    // return x*x + y*y;
-    return pow((x-y) * (x-y) + 10e-5, 0.75);
+    return pow((x-y) * (x-y) + 10e-8, 0.75);
 }
 
 double f(double x, double y) {   // laplas 
    // return 4;
-    double temp = (x-y) * (x-y) + 10e-5;
+    double temp = (x-y) * (x-y) + 10e-8;
     double temp1 = 3 / pow(temp, 0.25);
     double temp2= 1.5 * (x-y) * (x-y) / pow(temp, 1.25);
     temp = temp1 - temp2;
 
     if(temp > 10e5) {
-        temp = 10e5;
+      printf("big\n");
+      temp = 10e5;
     }
     return temp;
 }
@@ -30,14 +31,20 @@ double f(double x, double y) {   // laplas
 const double h = 1.0 / (n - 1);
 //const int nnz = 4*(n-1) + 5*(n-2)*(n-2);
 
-int Ap[N+1];
-int Ai[nnz];
-double Ax[nnz];
-double b[N], true_x[N], x[N];
+//int Ap[N+1];
+//int Ai[nnz];
+//double Ax[nnz];
+//double b[N], true_x[N], x[N];
 
-double a[N][N];
+//double a[N][N];
 
 int main() {
+    int *Ap = malloc(sizeof(int) * (N+1));
+    int *Ai = malloc(sizeof(int) * nnz);
+    double *Ax = malloc(sizeof(double) * nnz);
+    double *b = malloc(sizeof(double) * N);
+    double *true_x = malloc(sizeof(double) * N);
+    double *x = malloc(sizeof(double) * N);
 
     Ap[N] = nnz;
     int temp = 0;
@@ -101,8 +108,8 @@ int main() {
     umfpack_di_free_symbolic (&Symbolic) ;
     (void) umfpack_di_solve (UMFPACK_Aat, Ap, Ai, Ax, x, b, Numeric, null, Inform2) ;
     umfpack_di_free_numeric (&Numeric) ;
-
-    for(int i = 0; i < N; i++) {
+    printf("Solve time: %f \n", Inform2[UMFPACK_SOLVE_TIME]);
+   // for(int i = 0; i < N; i++) {
         // printf("%d \n", Ap[i]);
 
         // for(int j = 0; j < Ap[i+1] - Ap[i]; j++) {
@@ -116,7 +123,7 @@ int main() {
         // printf("\n");
 
     //    printf("%lf \t %lf \t %lf \t %d\n", x[i], true_x[i], b[i], Ap[i]);
-    }
+    //}
     double norm_max = 0;
     for(int i =  0; i < N; i++) {
         double ss = fabs(x[i] - true_x[i]);
@@ -124,5 +131,12 @@ int main() {
 
     }
     printf("error norm:  %lf \n", norm_max);
+
+    free(Ap);
+    free(Ai);
+    free(Ax);
+    free(b);
+    free(x);
+    free(true_x);
     return 0;
 }
