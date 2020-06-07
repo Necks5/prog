@@ -85,28 +85,35 @@ int main(int argc, char ** argv)
 	
 		int nodeij[2];
 		double nodemax = -10.0;
+		int sign = 1;
 		for(int i = 0; i < mtx_size; i++) {
 			for(int j = 0; j < mtx_size; j++) {
 				if(fabs(mtx[i + j * mtx_size]) > nodemax) {
-					nodemax = fabs(mtx[i + j * mtx_size]);
+					nodemax = mtx[i + j * mtx_size];
 					nodeij[0] = istart + i;
 					nodeij[1] = jstart + j;
+					if(mtx[i + j * mtx_size] < 0) 
+						sign = -1;
 				}
 	
 			}
 		}
+		int* signs = (int*)malloc(mpi_world_size_sq * sizeof(int));
 		int* nodes_buf = (int*)malloc(mpi_world_size_sq * 2 * sizeof(int) );
 		double* maxs_buf = (double*)malloc(mpi_world_size_sq * sizeof(double));
 		MPI_Allgather(&nodeij[0], 2, MPI_INT, nodes_buf, 2, MPI_INT, world);
 		MPI_Allgather(&nodemax, 1, MPI_DOUBLE, maxs_buf, 1, MPI_DOUBLE, world);
+		MPI_Allgather(&sign, 1, MPI_INT, signs, 1, MPI_INT, world);
 
 		int glob_i, glob_j;
 		double glob_max = -10.0;
+		int glob_sign = 1;
 		for(int i = 0; i < mpi_world_size_sq; i++){
-			if(maxs_buf[i] > glob_max) {
+			if(fabs(maxs_buf[i]) > glob_max) {
 				glob_max = maxs_buf[i];
 				glob_i = nodes_buf[2 * i];
 				glob_j = nodes_buf[2 * i + 1];
+				glob_sign = signs[i];
 			}
 		}
 
@@ -163,7 +170,7 @@ int main(int argc, char ** argv)
 		}
 		for(int i = 0; i < mtx_size; i++) {
 			for(int j = 0; j < mtx_size; j++) {
-				mtx[i + j * mtx_size] -= (ii[i + myid_I*mtx_size] * jj[j + myid_J*mtx_size]) / glob_max;   
+				mtx[i + j * mtx_size] -=  (ii[i + istart] * jj[j + jstart]) / glob_max;   
 			}
 		}
 		/*
