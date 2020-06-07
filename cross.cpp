@@ -84,11 +84,11 @@ int main(int argc, char ** argv)
 	while(flag) {
 	
 		int nodeij[2];
-		double nodemax = -10.0;
+		double nodemax = 0.0;
 		int sign = 1;
 		for(int i = 0; i < mtx_size; i++) {
 			for(int j = 0; j < mtx_size; j++) {
-				if(fabs(mtx[i + j * mtx_size]) > nodemax) {
+				if(fabs(mtx[i + j * mtx_size]) > fabs(nodemax)) {
 					nodemax = mtx[i + j * mtx_size];
 					nodeij[0] = istart + i;
 					nodeij[1] = jstart + j;
@@ -106,10 +106,10 @@ int main(int argc, char ** argv)
 		MPI_Allgather(&sign, 1, MPI_INT, signs, 1, MPI_INT, world);
 
 		int glob_i, glob_j;
-		double glob_max = -10.0;
+		double glob_max = 0.0;
 		int glob_sign = 1;
 		for(int i = 0; i < mpi_world_size_sq; i++){
-			if(fabs(maxs_buf[i]) > glob_max) {
+			if(fabs(maxs_buf[i]) > fabs(glob_max)) {
 				glob_max = maxs_buf[i];
 				glob_i = nodes_buf[2 * i];
 				glob_j = nodes_buf[2 * i + 1];
@@ -186,8 +186,8 @@ int main(int argc, char ** argv)
 
 		
 		if(myid == 0)
-			printf("max: %lf \n", glob_max);
-		if(glob_max < 0.001)
+			printf("max: %lf \n", fabs(glob_max));
+		if(fabs(glob_max) < 0.001)
 			flag = false;
 		
 		//flag = false;
