@@ -88,7 +88,7 @@ int main(int argc, char ** argv)
 		for(int i = 0; i < mtx_size; i++) {
 			for(int j = 0; j < mtx_size; j++) {
 				if(fabs(mtx[i + j * mtx_size]) > nodemax) {
-					nodemax = mtx[i + j * mtx_size];
+					nodemax = fabs(mtx[i + j * mtx_size]);
 					nodeij[0] = istart + i;
 					nodeij[1] = jstart + j;
 				}
