@@ -5,7 +5,7 @@
 #include "umfpack.h"
 
 
-#define n 1000
+#define n 1500
 #define nnz (4*(n-1) + 5*(n-2)*(n-2))
 #define N n*n
 
