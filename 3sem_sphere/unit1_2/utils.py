@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
+from sklearn.linear_model import LinearRegression
 
 class DesTreeReg:
     NON_LEAF_TYPE = 0
@@ -87,38 +88,53 @@ class DesTreeReg:
 class MyGradientBoostingRegressor:
     def __init__(self, learning_rate=0.1, n_estimators=100,
                  min_samples_split=2, max_depth=3, max_features=0.5, 
-                subsample=1.0):
+                subsample=1.0, loss = 'mse'):
         self.learning_rate = learning_rate
         self.n_estimators = n_estimators
         self.min_samples_split = min_samples_split
         self.max_depth = max_depth
         self.max_features = max_features
         self.subsample = subsample
+        self.loss = loss
         
         self.estimators = []
-        self.mse_train = []
-        self.mse_test = []
+        self.loss_train = []
+        self.loss_test = []
+        
+    def loss_func(self, a, b):
+        if self.loss == 'mse':
+            return (a - b) ** 2
+        else: 
+            return np.abs(a - b)
+        
+    def loss_grad(self, a, b):
+        if self.loss == 'mse':
+            return 2.0 * (a - b) 
+        else: 
+            return 1.0 * np.sign(a - b)
         
     def fit(self, x, y, x_test = None, y_test = None):
-        self.mse_train = []
-        self.mse_test = []
+        self.loss_train = []
+        self.loss_test = []
         
-        temp_tree = DesTreeReg(min_samples_split = self.min_samples_split, 
-                              max_depth = self.max_depth,
-                              max_features = self.max_features)
+        temp_tree = ZeroAlg()
+#         temp_tree = DesTreeReg(min_samples_split = self.min_samples_split, 
+#                               max_depth = self.max_depth,
+#                               max_features = self.max_features)
         temp_tree.fit(x, y)
         self.estimators.append(temp_tree)
         
         predictions = self.estimators[-1].predict(x)
         
-        self.mse_train.append(np.mean((predictions - y) ** 2))
+        self.loss_train.append(np.mean(self.loss_func(predictions, y)))
+        
         if x_test is not None:
             predictions_test = np.sum([tree.predict(x_test) for tree in self.estimators], axis=0)
-            self.mse_test.append(np.mean((predictions_test - y_test) ** 2))
+            self.loss_test.append(np.mean(self.loss_func(predictions_test, y_test)))
             
         for est_idx in range(self.n_estimators - 1):
             ids = np.random.choice(x.shape[0], int(x.shape[0] * self.subsample), replace = False)
-            gradient = 2.0 * (y[ids] - predictions[ids])
+            gradient = self.loss_grad(y[ids], predictions[ids])
             temp_tree = DesTreeReg(min_samples_split = self.min_samples_split, 
                                   max_depth = self.max_depth,
                                   max_features = self.max_features)
@@ -133,13 +149,13 @@ class MyGradientBoostingRegressor:
             
             predictions += self.estimators[-1].predict(x)
             
-            self.mse_train.append(np.mean((predictions - y) ** 2))
+            self.loss_train.append(np.mean(self.loss_func(predictions, y)))
             if x_test is not None:
                 predictions_test = np.sum([tree.predict(x_test) for tree in self.estimators], axis=0)
-                self.mse_test.append(np.mean((predictions_test - y_test) ** 2))
+                self.loss_test.append(np.mean(self.loss_func(predictions_test - y_test)))
                 
-        self.mse_test = np.array(self.mse_test)
-        self.mse_train = np.array(self.mse_train)
+        self.loss_test = np.array(self.loss_test)
+        self.loss_train = np.array(self.loss_train)
             
     def predict(self, x):
         return np.sum((tree.predict(x) for tree in self.estimators))
@@ -219,6 +235,118 @@ class BagBoo:
     
     def predict(self, x, y):
         return np.mean((tree.predict(x) for tree in self.trees))
+
+class ZeroAlg:
+    def __init__(self):
+        pass
+    def fit(self, x, y):
+        pass
+    def predict(self, x):
+        return np.zeros(x.shape[0])
+    
+class MyGradientBoostingRegressorWithLinFeat:
+    def __init__(self, learning_rate=0.1, n_estimators=100,
+                 min_samples_split=2, max_depth=3, max_features=0.5, 
+                subsample=1.0, loss = 'mse', new_feat = 100):
+        self.learning_rate = learning_rate
+        self.n_estimators = n_estimators
+        self.min_samples_split = min_samples_split
+        self.max_depth = max_depth
+        self.max_features = max_features
+        self.subsample = subsample
+        self.loss = loss
+        self.new_feat = new_feat
+        
+        self.estimators = []
+        self.loss_train = []
+        self.loss_test = []
+        self.linear_regressors = []
+        self.idss = []
+        
+    def loss_func(self, a, b):
+        if self.loss == 'mse':
+            return (a - b) ** 2
+        else: 
+            return np.abs(a - b)
+        
+    def loss_grad(self, a, b):
+        if self.loss == 'mse':
+            return 2.0 * (a - b) 
+        else: 
+            return 1.0 * np.sign(a - b)
+        
+    def fit(self, x, y, x_test = None, y_test = None):
+        self.loss_train = []
+        self.loss_test = []
+        
+        X_new = []
+        X_new_test = []
+        for i in range(self.new_feat):
+            ids = np.random.choice(x.shape[1], int(x.shape[1] * 0.2), replace = False)
+            reg = LinearRegression(n_jobs=4).fit(x[:, ids], y)
+            pred = reg.predict(x[:, ids])
+            X_new.append(pred)
+            if x_test is not None:
+                pred2 = reg.predict(x_test[:, ids])
+                X_new_test.append(pred2)
+            self.linear_regressors.append(reg)
+            self.idss.append(ids)
+        X_new = np.array(X_new)
+        x = np.concatenate((X_new.T, x), axis = 1)
+        if x_test is not None:
+            X_new_test = np.array(X_new_test)
+            x_test = np.concatenate((X_new_test.T, x_test), axis = 1)
+            
+        
+        temp_tree = ZeroAlg()
+#         temp_tree = DesTreeReg(min_samples_split = self.min_samples_split, 
+#                               max_depth = self.max_depth,
+#                               max_features = self.max_features)
+        temp_tree.fit(x, y)
+        self.estimators.append(temp_tree)
+        
+        predictions = self.estimators[-1].predict(x)
+        
+        self.loss_train.append(np.mean(self.loss_func(predictions, y)))
+        
+        if x_test is not None:
+            predictions_test = np.sum([tree.predict(x_test) for tree in self.estimators], axis=0)
+            self.loss_test.append(np.mean(self.loss_func(predictions_test, y_test)))
+            
+        for est_idx in range(self.n_estimators - 1):
+            ids = np.random.choice(x.shape[0], int(x.shape[0] * self.subsample), replace = False)
+            gradient = self.loss_grad(y[ids], predictions[ids])
+            temp_tree = DesTreeReg(min_samples_split = self.min_samples_split, 
+                                  max_depth = self.max_depth,
+                                  max_features = self.max_features)
+            temp_tree.fit(x[ids], gradient)
+            self.estimators.append(temp_tree)
+            
+            prediction_i = self.estimators[-1].predict(x)
+            b_ = ((prediction_i[ids] * (y[ids] - predictions[ids])).sum() /
+                     ((prediction_i[ids]**2).sum()))
+            
+            self.estimators[-1].update_leafs(self.learning_rate, b_)
+            
+            predictions += self.estimators[-1].predict(x)
+            
+            self.loss_train.append(np.mean(self.loss_func(predictions, y)))
+            if x_test is not None:
+                predictions_test = np.sum([tree.predict(x_test) for tree in self.estimators], axis=0)
+                self.loss_test.append(np.mean(self.loss_func(predictions_test, y_test)))
+                
+        self.loss_test = np.array(self.loss_test)
+        self.loss_train = np.array(self.loss_train)
+            
+    def predict(self, x):
+        X_new = []
+        for i in range(self.new_feat):
+            ids = self.idss[i]
+            pred = self.linear_regressors[i].predict(x[:, ids])
+            X_new.append(pred)
+        X_new = np.array(X_new)
+        x = np.concatenate((X_new.T, x), axis = 1)
+        return np.sum((tree.predict(x) for tree in self.estimators))   
     
 def parse_sparce(path):
     x, y = [], []
